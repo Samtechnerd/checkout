@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pro Barcode Kiosk</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
+        #scanner-side { width: 40%; position: relative; border-right: 4px solid #333; background: #000; }
+        #interactive.viewport { width: 100%; height: 100%; object-fit: cover; }
+        #interactive.viewport canvas.drawingBuffer { display: none; } /* Hide the green box overlay */
+        
+        /* The Red "Scan Line" Guide */
+        .scan-guide { 
+            position: absolute; top: 50%; left: 10%; width: 80%; height: 2px; 
+            background: red; box-shadow: 0 0 10px red; z-index: 10; 
+        }
+
+        #cart-side { width: 60%; padding: 30px; display: flex; flex-direction: column; background: #fff; color: #333; }
+        .cart-list { flex-grow: 1; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 10px; }
+        .item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; font-size: 1.2rem; }
+        .total-section { font-size: 2rem; font-weight: bold; margin-top: 20px; border-top: 5px solid #333; padding-top: 10px; }
+        
+        .staff-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; text-align: center; padding-top: 100px; }
+        button { padding: 15px 30px; font-size: 1.2rem; border-radius: 8px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="staffMenu" class="staff-overlay">
+        <h1 style="color: #ffc107;">MANAGER OVERRIDE REQUIRED</h1>
+        <button onclick="voidLastItem()" style="background: #ffc107;">Void Last Item</button>
+        <button onclick="restartSystem()" style="background: #dc3545; color: white;">Clear All</button>
+        <button onclick="closeStaffMenu()" style="background: #6c757d; color: white;">Back</button>
+    </div>
+
+    <div id="scanner-side">
+        <div id="interactive" class="viewport"></div>
+        <div class="scan-guide"></div>
+        <div style="position: absolute; bottom: 20px; width: 100%; text-align: center;">
+            Align barcode with the red line
+        </div>
+    </div>
+
+    <div id="cart-side">
+        <h1>🛒 Self-Checkout</h1>
+        <div class="cart-list" id="cartItems">
+            <p style="text-align:center; color:#999;">Scan an item to begin...</p>
+        </div>
+        <div class="total-section" id="totalDisplay">Total: $0.00</div>
+        <button style="background: #28a745; color: white; margin-top: 20px;">FINISH & PAY</button>
+    </div>
+
+<script>
+    let cart = [];
+    const STAFF_CARD_CODE = "99999999"; // Your designated staff barcode
+
+    // Initialize Quagga for 1D Barcodes
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#interactive'),
+            constraints: { facingMode: "environment" }
+        },
+        decoder: {
+            readers: ["code_128_reader", "ean_reader", "upc_reader"] // Most common store barcodes
+        }
+    }, function(err) {
+        if (err) { console.log(err); return; }
+        Quagga.start();
+    });
+
+    let lastScanTime = 0;
+    Quagga.onDetected(function(result) {
+        let code = result.codeResult.code;
+        let now = Date.now();
+
+        // Prevent "double scans" (wait 2 seconds between scans)
+        if (now - lastScanTime < 2000) return;
+        lastScanTime = now;
+
+        handleScan(code);
+    });
+
+    function handleScan(code) {
+        if (code === STAFF_CARD_CODE) {
+            document.getElementById('staffMenu').style.display = 'block';
+            return;
+        }
+
+        const inventory = JSON.parse(localStorage.getItem('inventory')) || [];
+        const product = inventory.find(p => p.id === code);
+
+        if (product) {
+            cart.push(product);
+            renderCart();
+        } else {
+            console.log("Unknown barcode: " + code);
+        }
+    }
+
+    function renderCart() {
+        const cartDiv = document.getElementById('cartItems');
+        let total = 0;
+        cartDiv.innerHTML = cart.map((item) => {
+            total += parseFloat(item.price);
+            return `<div class="item"><span>${item.name}</span><span>$${item.price}</span></div>`;
+        }).join('');
+        document.getElementById('totalDisplay').innerText = `Total: $${total.toFixed(2)}`;
+    }
+
+    function voidLastItem() { cart.pop(); renderCart(); closeStaffMenu(); }
+    function restartSystem() { cart = []; renderCart(); closeStaffMenu(); }
+    function closeStaffMenu() { document.getElementById('staffMenu').style.display = 'none'; }
+</script>
+</body>
+</html>
