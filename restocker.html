@@ -2,12 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Restocker Interface</title>
+    <title>Restocker Interface + Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* Scanner Window Styling */
+        #scanner-window { 
+            width: 100%; height: 250px; background: #000; 
+            margin-bottom: 15px; border-radius: 8px; overflow: hidden;
+            display: none; /* Hidden until "Scan" is clicked */
+            position: relative;
+        }
+        #scanner-window video { width: 100%; height: 100%; object-fit: cover; }
+        .line { position: absolute; top: 50%; width: 100%; height: 2px; background: red; box-shadow: 0 0 5px red; }
+
         input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; }
+        .btn-scan { background: #007bff; color: white; margin-bottom: 10px; }
+        .btn-save { background: #28a745; color: white; }
+        button { width: 100%; padding: 12px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
@@ -15,26 +29,67 @@
 <body>
 
 <div class="container">
-    <h2>📦 Inventory Manager (Restocker)</h2>
-    <input type="text" id="pBarcode" placeholder="Barcode (e.g. 12345)">
+    <h2>📦 Restocker Panel</h2>
+    
+    <button class="btn-scan" onclick="toggleScanner()">📷 Open Barcode Scanner</button>
+    
+    <div id="scanner-window">
+        <div class="line"></div>
+    </div>
+
+    <input type="text" id="pBarcode" placeholder="Barcode ID (Scanned or Typed)">
     <input type="text" id="pName" placeholder="Product Name">
-    <input type="number" id="pPrice" placeholder="Price (0.00)" step="0.01">
-    <button onclick="saveProduct()">Save Product</button>
+    <input type="number" id="pPrice" placeholder="Price (e.g. 2.50)" step="0.01">
+    <button class="btn-save" onclick="saveProduct()">Save to Inventory</button>
 
     <h3>Current Inventory</h3>
-    <table id="inventoryTable">
-        <thead>
-            <tr><th>Barcode</th><th>Name</th><th>Price</th></tr>
-        </thead>
+    <table>
+        <thead><tr><th>Barcode</th><th>Name</th><th>Price</th></tr></thead>
         <tbody id="list"></tbody>
     </table>
-    <button onclick="clearAll()" style="background:#dc3545; margin-top:10px;">Clear All Data</button>
+    <button onclick="clearAll()" style="background:#dc3545; margin-top:20px; color:white;">Reset All Data</button>
 </div>
 
 <script>
-    // Load products from localStorage on startup
     let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
+    let isScanning = false;
     renderTable();
+
+    function toggleScanner() {
+        const win = document.getElementById('scanner-window');
+        if (!isScanning) {
+            win.style.display = 'block';
+            startScanner();
+        } else {
+            win.style.display = 'none';
+            Quagga.stop();
+        }
+        isScanning = !isScanning;
+    }
+
+    function startScanner() {
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner-window'),
+                constraints: { facingMode: "environment" }
+            },
+            decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader"] }
+        }, (err) => {
+            if (err) return console.error(err);
+            Quagga.start();
+        });
+
+        Quagga.onDetected((data) => {
+            document.getElementById('pBarcode').value = data.codeResult.code;
+            // Provide visual feedback
+            document.getElementById('pBarcode').style.backgroundColor = "#e8f5e9";
+            // Flash the red line to show success
+            document.querySelector('.line').style.background = "lime";
+            setTimeout(() => { document.querySelector('.line').style.background = "red"; }, 500);
+        });
+    }
 
     function saveProduct() {
         const product = {
@@ -42,14 +97,16 @@
             name: document.getElementById('pName').value,
             price: document.getElementById('pPrice').value
         };
-        
+        if(!product.id || !product.name) return alert("Please fill in details");
+
         inventory.push(product);
         localStorage.setItem('inventory', JSON.stringify(inventory));
         renderTable();
-        // Clear inputs
+        // Reset fields
         document.getElementById('pBarcode').value = '';
         document.getElementById('pName').value = '';
         document.getElementById('pPrice').value = '';
+        document.getElementById('pBarcode').style.backgroundColor = "white";
     }
 
     function renderTable() {
@@ -58,7 +115,7 @@
     }
 
     function clearAll() {
-        if(confirm("Delete everything?")) {
+        if(confirm("Wipe all inventory?")) {
             localStorage.clear();
             inventory = [];
             renderTable();
