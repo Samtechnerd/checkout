@@ -1,113 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tesco Restocker - Cloud Control</title>
+    <title>Hello. Restocker</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --blue: #00539f; --light: #f3f3f3; }
-        body { font-family: Arial, sans-serif; background: var(--light); padding: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1000px; margin: auto; }
-        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { color: var(--blue); margin-top: 0; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: var(--blue); color: white; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        #reader { width: 100%; border-radius: 8px; margin-bottom: 15px; display: none; }
-        .scan-toggle { background: #444; margin-bottom: 15px; }
+        body { font-family: Arial; padding: 20px; background: #f3f3f3; }
+        .box { background: white; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn { background: #00539f; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        #reader { width: 100%; height: 250px; background: #000; margin-bottom: 10px; border-radius: 8px; overflow: hidden; }
     </style>
 </head>
 <body>
-
-    <div class="grid">
-        <div class="box">
-            <h2>🛒 Product Manager</h2>
-            <button class="scan-toggle" onclick="toggleScanner('p')">📷 Scan Product Barcode</button>
-            <div id="reader"></div>
-            
-            <input type="text" id="pBarcode" placeholder="Barcode ID (Scanned or Typed)">
-            <input type="text" id="pName" placeholder="Product Name">
-            <input type="number" id="pPrice" placeholder="Price (£)" step="0.01">
-            <button onclick="saveItem('inventory')">Save to Cloud</button>
-        </div>
-
-        <div class="box">
-            <h2>🔑 Staff Settings</h2>
-            <button class="scan-toggle" onclick="toggleScanner('s')">📷 Scan Staff Card</button>
-            
-            <input type="text" id="sBarcode" placeholder="Staff Barcode ID">
-            <input type="text" id="sName" placeholder="Staff Name">
-            <button onclick="saveItem('staff')">Register Staff Card</button>
-        </div>
+    <div class="box">
+        <h2 style="color:#00539f">Product & Staff Manager</h2>
+        <div id="reader"></div>
+        <input type="text" id="bc" placeholder="Barcode ID (Scan or type)">
+        <input type="text" id="nm" placeholder="Name">
+        <input type="number" id="pr" placeholder="Price (£)" step="0.01">
+        <button class="btn" onclick="save('inventory')">Add Product</button>
+        <button class="btn" style="background:#555; margin-top:10px;" onclick="save('staff')">Add as Staff Card</button>
+        
+        <hr>
+        <h3>Live Inventory</h3>
+        <div id="live-list"></div>
     </div>
 
     <script>
-        // --- YOUR FIREBASE CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
-            authDomain: "checkout-c52ab.firebaseapp.com",
-            projectId: "checkout-c52ab",
-            storageBucket: "checkout-c52ab.firebasestorage.app",
-            messagingSenderId: "486554411560",
-            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE", authDomain: "checkout-c52ab.firebaseapp.com", projectId: "checkout-c52ab", storageBucket: "checkout-c52ab.firebasestorage.app", messagingSenderId: "486554411560", appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- SCANNER LOGIC ---
-        let html5QrcodeScanner = null;
-        let activeTarget = 'p'; // 'p' for product, 's' for staff
+        // Start Scanner
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (code) => {
+            document.getElementById('bc').value = code;
+        });
 
-        function toggleScanner(target) {
-            activeTarget = target;
-            const readerDiv = document.getElementById('reader');
+        async function save(type) {
+            const id = document.getElementById('bc').value;
+            const name = document.getElementById('nm').value;
+            const price = document.getElementById('pr').value;
             
-            if (readerDiv.style.display === 'block') {
-                readerDiv.style.display = 'none';
-                if(html5QrcodeScanner) html5QrcodeScanner.clear();
-            } else {
-                readerDiv.style.display = 'block';
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-                html5QrcodeScanner.render(onScanSuccess);
-            }
+            await db.collection(type).doc(id).set({
+                id: id,
+                name: name,
+                price: parseFloat(price || 0)
+            });
+            alert("Saved to " + type);
         }
 
-        function onScanSuccess(decodedText) {
-            if (activeTarget === 'p') {
-                document.getElementById('pBarcode').value = decodedText;
-                document.getElementById('pBarcode').style.borderColor = "#27ae60";
-            } else {
-                document.getElementById('sBarcode').value = decodedText;
-                document.getElementById('sBarcode').style.borderColor = "#27ae60";
-            }
-            // Flash success feedback
-            if(navigator.vibrate) navigator.vibrate(50);
-        }
-
-        // --- CLOUD SAVE LOGIC ---
-        async function saveItem(collection) {
-            let id, data;
-            
-            if (collection === 'inventory') {
-                id = document.getElementById('pBarcode').value;
-                data = {
-                    id: id,
-                    name: document.getElementById('pName').value,
-                    price: parseFloat(document.getElementById('pPrice').value)
-                };
-            } else {
-                id = document.getElementById('sBarcode').value;
-                data = { name: document.getElementById('sName').value };
-            }
-
-            if (!id || !data.name) return alert("Please fill in all fields!");
-
-            await db.collection(collection).doc(id).set(data);
-            alert("Successfully saved to Cloud!");
-            
-            // Clear inputs
-            document.querySelectorAll('input').forEach(i => { i.value = ""; i.style.borderColor = "#ccc"; });
-        }
+        // Live list listener
+        db.collection("inventory").onSnapshot(snap => {
+            document.getElementById('live-list').innerHTML = snap.docs.map(doc => 
+                `<p>${doc.data().name} - £${doc.data().price} (ID: ${doc.id})</p>`
+            ).join('');
+        });
     </script>
 </body>
 </html>
