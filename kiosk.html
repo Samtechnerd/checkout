@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Functional Sam's Checkout</title>
+    <title>Functional Sam's Checkout | iPad Optimized</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -19,7 +19,7 @@
         .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; align-items: center; }
         .active { display: flex; }
 
-        /* 1. WELCOME SCREEN FIXES (Big Container) */
+        /* Welcome Screen */
         #screen-welcome { justify-content: center; }
         .hello-container { 
             background: white; width: 85%; max-width: 1100px; height: 45vh; 
@@ -34,10 +34,10 @@
         .btn-blue { background: var(--blue); color: white; }
         .btn-outline { background: white; color: var(--blue); }
 
-        /* 2. SCANNING SCREEN FIXES (No Overlap) */
+        /* Scanning Screen */
         #screen-scan { flex-direction: row; align-items: stretch; background: white; }
         .left-side { flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        #reader { width: 90%; max-width: 550px; aspect-ratio: 4/3; border-radius: 12px; background: black; }
+        #reader { width: 95%; max-width: 600px; aspect-ratio: 4/3; border-radius: 12px; background: black; overflow: hidden; }
         
         .right-side { flex: 1; border-left: 2px solid #eee; display: flex; flex-direction: column; min-width: 380px; }
         .utility-header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; border-bottom: 1px solid #eee; }
@@ -48,7 +48,7 @@
         .total-box { padding: 30px; border-top: 2px solid #ddd; background: white; }
         .total-val { font-size: 50px; font-weight: bold; text-align: right; margin-bottom: 20px; }
 
-        /* 3. PAYMENT SCREEN (Large Side-by-Side Boxes) */
+        /* Payment Screen */
         #screen-pay { justify-content: center; padding: 60px; background: var(--grey); }
         .pay-grid { display: flex; gap: 30px; width: 80%; max-width: 1000px; justify-content: center; margin-top: 40px; }
         .pay-box { 
@@ -57,7 +57,6 @@
             justify-content: center; font-size: 60px; font-weight: bold; 
             color: var(--blue); cursor: pointer; transition: 0.2s;
         }
-        .pay-box:active { transform: scale(0.98); background: #f0f0f0; }
 
         /* Footer */
         .footer { position: fixed; bottom: 30px; left: 45px; display: flex; gap: 40px; }
@@ -76,13 +75,13 @@
             <button class="btn-main btn-outline" onclick="changeScreen('screen-scan')">Shop and Scan</button>
         </div>
         <p style="color:#555; font-size: 18px; text-align: center;">For <b>Shop and Scan</b> please press the<br>Shop and Scan button above.</p>
-        <button class="btn-main btn-outline" style="padding: 10px 40px; font-size: 18px; min-width: 200px; margin-top: 15px;" onclick="alert('Sam\'s Checkout')">Sams checkout</button>
+        <button class="btn-main btn-outline" style="padding: 10px 40px; font-size: 18px; min-width: 200px; margin-top: 15px;">Sams checkout</button>
     </div>
 
     <div id="screen-scan" class="screen">
         <div class="left-side">
             <div id="reader"></div>
-            <p style="color: var(--blue); font-weight: bold; margin-top: 20px;">Please scan your item</p>
+            <p style="color: var(--blue); font-weight: bold; margin-top: 20px;">Position barcode in the center of the box</p>
         </div>
         <div class="right-side">
             <div class="utility-header">
@@ -134,7 +133,20 @@
             document.getElementById(id).classList.add('active');
             if(id === 'screen-scan' && !scanner) {
                 scanner = new Html5Qrcode("reader");
-                scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: {width: 350, height: 150} }, onScan);
+                
+                // iPad Optimized Scanner Settings
+                const config = { 
+                    fps: 20, 
+                    qrbox: { width: 450, height: 200 }, // Wider box for 1D barcodes
+                    aspectRatio: 1.0,
+                    videoConstraints: {
+                        facingMode: "environment",
+                        width: { ideal: 1280 }, // Higher resolution for better detail
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                scanner.start({ facingMode: "environment" }, config, onScan);
             }
         }
 
