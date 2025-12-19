@@ -1,32 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Restocker & Settings</title>
+    <title>Tesco Restocker - Cloud Control</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f3f3f3; padding: 20px; display: flex; gap: 20px; }
-        .box { background: white; padding: 20px; border-radius: 12px; flex: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #00539f; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        :root { --blue: #00539f; --light: #f3f3f3; }
+        body { font-family: Arial, sans-serif; background: var(--light); padding: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1000px; margin: auto; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: var(--blue); margin-top: 0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: var(--blue); color: white; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        #reader { width: 100%; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .scan-toggle { background: #444; margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>🛍️ Add Product</h2>
-        <input type="text" id="bc" placeholder="Barcode ID">
-        <input type="text" id="nm" placeholder="Product Name">
-        <input type="number" id="pr" placeholder="Price" step="0.01">
-        <button onclick="save('inventory')">Save Product</button>
-    </div>
-    <div class="box">
-        <h2>🔑 Set Staff Cards</h2>
-        <input type="text" id="sbc" placeholder="Staff Card Barcode">
-        <input type="text" id="snm" placeholder="Staff Name">
-        <button onclick="save('staff')">Register Staff</button>
+
+    <div class="grid">
+        <div class="box">
+            <h2>🛒 Product Manager</h2>
+            <button class="scan-toggle" onclick="toggleScanner('p')">📷 Scan Product Barcode</button>
+            <div id="reader"></div>
+            
+            <input type="text" id="pBarcode" placeholder="Barcode ID (Scanned or Typed)">
+            <input type="text" id="pName" placeholder="Product Name">
+            <input type="number" id="pPrice" placeholder="Price (£)" step="0.01">
+            <button onclick="saveItem('inventory')">Save to Cloud</button>
+        </div>
+
+        <div class="box">
+            <h2>🔑 Staff Settings</h2>
+            <button class="scan-toggle" onclick="toggleScanner('s')">📷 Scan Staff Card</button>
+            
+            <input type="text" id="sBarcode" placeholder="Staff Barcode ID">
+            <input type="text" id="sName" placeholder="Staff Name">
+            <button onclick="saveItem('staff')">Register Staff Card</button>
+        </div>
     </div>
 
     <script>
+        // --- YOUR FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
             authDomain: "checkout-c52ab.firebaseapp.com",
@@ -38,18 +54,59 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function save(collection) {
-            if(collection === 'inventory') {
-                const id = document.getElementById('bc').value;
-                await db.collection(collection).doc(id).set({
-                    name: document.getElementById('nm').value,
-                    price: parseFloat(document.getElementById('pr').value)
-                });
+        // --- SCANNER LOGIC ---
+        let html5QrcodeScanner = null;
+        let activeTarget = 'p'; // 'p' for product, 's' for staff
+
+        function toggleScanner(target) {
+            activeTarget = target;
+            const readerDiv = document.getElementById('reader');
+            
+            if (readerDiv.style.display === 'block') {
+                readerDiv.style.display = 'none';
+                if(html5QrcodeScanner) html5QrcodeScanner.clear();
             } else {
-                const id = document.getElementById('sbc').value;
-                await db.collection(collection).doc(id).set({ name: document.getElementById('snm').value });
+                readerDiv.style.display = 'block';
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+                html5QrcodeScanner.render(onScanSuccess);
             }
-            alert("Saved to " + collection);
+        }
+
+        function onScanSuccess(decodedText) {
+            if (activeTarget === 'p') {
+                document.getElementById('pBarcode').value = decodedText;
+                document.getElementById('pBarcode').style.borderColor = "#27ae60";
+            } else {
+                document.getElementById('sBarcode').value = decodedText;
+                document.getElementById('sBarcode').style.borderColor = "#27ae60";
+            }
+            // Flash success feedback
+            if(navigator.vibrate) navigator.vibrate(50);
+        }
+
+        // --- CLOUD SAVE LOGIC ---
+        async function saveItem(collection) {
+            let id, data;
+            
+            if (collection === 'inventory') {
+                id = document.getElementById('pBarcode').value;
+                data = {
+                    id: id,
+                    name: document.getElementById('pName').value,
+                    price: parseFloat(document.getElementById('pPrice').value)
+                };
+            } else {
+                id = document.getElementById('sBarcode').value;
+                data = { name: document.getElementById('sName').value };
+            }
+
+            if (!id || !data.name) return alert("Please fill in all fields!");
+
+            await db.collection(collection).doc(id).set(data);
+            alert("Successfully saved to Cloud!");
+            
+            // Clear inputs
+            document.querySelectorAll('input').forEach(i => { i.value = ""; i.style.borderColor = "#ccc"; });
         }
     </script>
 </body>
