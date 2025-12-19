@@ -1,140 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Tesco Checkout - Original Scanner</title>
+    <meta charset="UTF-8">
+    <title>Functional Sam's Checkout</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --blue: #00539f; --red: #ee1c2e; --orange: #ff8a00; }
-        body { font-family: Arial, sans-serif; margin: 0; background: white; overflow: hidden; }
-        
-        /* Orange Assistance Bar */
-        #assistance-bar { display: none; background: var(--orange); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 20px; position: fixed; top: 0; width: 100%; z-index: 1000; cursor: pointer; }
+        :root { --blue: #00539f; --red: #ee1c2e; --grey: #f3f3f3; --orange: #ff8a00; }
+        body { font-family: Arial, sans-serif; margin: 0; background: var(--grey); overflow: hidden; }
+
+        /* Assistance Overlay */
+        #assistance-bar { display: none; background: var(--orange); color: white; padding: 15px; text-align: center; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 2000; cursor: pointer; }
+
+        /* Container Layouts */
+        .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; }
+        .active { display: flex; }
 
         /* Welcome Screen */
-        #welcome-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .hello { font-size: 80px; font-weight: bold; color: var(--blue); }
+        .hello-container { background: white; width: 85%; height: 40vh; margin: 50px auto; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; }
+        .hello { font-size: 110px; font-weight: bold; color: var(--blue); }
         .hello span { color: var(--red); }
-        
+
         /* Scanning Screen */
-        #scan-screen { display: none; height: 100vh; flex-direction: row; }
-        #reader { width: 400px; height: 300px; background: #000; margin: 20px; border-radius: 10px; overflow: hidden; }
-        .receipt { flex-grow: 1; background: #f9f9f9; padding: 30px; display: flex; flex-direction: column; }
-        
-        .btn-fill { background: var(--blue); color: white; padding: 20px 50px; border-radius: 50px; font-weight: bold; border: none; font-size: 20px; cursor: pointer; }
-        .btn-outline { border: 2px solid var(--blue); color: var(--blue); background: white; padding: 15px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        .scan-grid { display: flex; flex-direction: row; height: 100%; background: white; }
+        .left-side { flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid #ddd; }
+        .right-side { flex: 1; display: flex; flex-direction: column; }
+        #reader { width: 90%; max-width: 500px; border-radius: 12px; background: black; }
+
+        /* Receipt & Buttons */
+        .basket { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 1.2rem; }
+        .total-box { padding: 30px; border-top: 2px solid #ddd; text-align: right; }
+
+        /* UI Elements */
+        .btn-blue { background: var(--blue); color: white; padding: 20px 50px; border-radius: 50px; font-weight: bold; border: none; font-size: 24px; cursor: pointer; }
+        .btn-outline { background: white; color: var(--blue); border: 2px solid var(--blue); padding: 15px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        .footer { position: fixed; bottom: 20px; left: 40px; display: flex; gap: 30px; }
     </style>
 </head>
 <body>
 
-    <div id="assistance-bar" onclick="startStaffVerify()">ASSISTANCE REQUIRED - SCAN STAFF CARD</div>
+    <div id="assistance-bar" onclick="startStaffUnlock()">ASSISTANCE REQUIRED - SCAN STAFF CARD</div>
 
-    <div id="welcome-screen">
-        <div class="hello">Hello<span>.</span></div>
-        <div style="margin-top:40px;">
-            <button class="btn-fill" onclick="showScan()">Start Scanning</button>
-            <button class="btn-outline" style="margin-left:15px;">Find item</button>
+    <div id="screen-welcome" class="screen active" style="align-items: center;">
+        <div class="hello-container"><div class="hello">Hello<span>.</span></div></div>
+        <div style="display:flex; gap:20px;">
+            <button class="btn-blue" onclick="changeScreen('screen-scan')">Start Scanning</button>
+            <button class="btn-outline" onclick="changeScreen('screen-scan')">Shop and Scan</button>
         </div>
-        <div style="margin-top:50px;" onclick="callHelp()">
-            <div style="border:2px solid var(--blue); width:50px; height:50px; border-radius:50%; margin:auto; display:flex; align-items:center; justify-content:center; color:var(--blue); font-weight:bold; cursor:pointer;">?</div>
-            <p style="color:var(--blue); font-size:12px; font-weight:bold;">Assistance</p>
+        <p style="text-align:center; color:#555; margin-top:30px;">For <b>Shop and Scan</b> please press the<br>Shop and Scan button above.</p>
+        <button class="btn-outline" style="margin-top:20px;" onclick="alert('Sams Checkout Mode')">Sams checkout</button>
+    </div>
+
+    <div id="screen-scan" class="screen">
+        <div class="scan-grid">
+            <div class="left-side">
+                <div id="reader"></div>
+                <div style="margin-top:30px; display:flex; gap:15px;">
+                    <button class="btn-outline">Find item</button>
+                    <button class="btn-outline">Voucher</button>
+                </div>
+            </div>
+            <div class="right-side">
+                <div style="padding:20px; font-weight:bold; border-bottom:1px solid #eee;">🛒 Items: <span id="count">0</span></div>
+                <div class="basket" id="basket"></div>
+                <div class="total-box">
+                    <h1 id="total-val">€0.00</h1>
+                    <button class="btn-blue" style="width:100%" onclick="changeScreen('screen-pay')">Pay Now</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="scan-screen">
-        <div style="width: 440px; display: flex; flex-direction: column; align-items: center;">
-            <div id="reader"></div>
-            <p id="status" style="color: var(--blue); font-weight: bold;">Ready to scan</p>
-            <button class="btn-outline" onclick="location.reload()">Back</button>
+    <div id="screen-pay" class="screen" style="padding:60px; background:var(--grey);">
+        <h1 style="color:var(--blue); font-size:3rem;">Select payment type</h1>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-top:40px;">
+            <button class="btn-outline" style="height:150px;" onclick="finish()">Cash</button>
+            <button class="btn-outline" style="height:150px;" onclick="finish()">Card</button>
+            <button class="btn-outline" style="height:150px;">Voucher</button>
         </div>
-        <div class="receipt">
-            <h2 style="color:var(--blue)">Basket</h2>
-            <div id="basket-items" style="flex-grow:1; border-top:1px solid #ddd;"></div>
-            <h1 id="total-price" style="text-align:right; font-size:48px;">£0.00</h1>
-            <button class="btn-fill" style="width:100%">Pay Now</button>
-        </div>
+        <button class="btn-outline" style="margin-top:40px;" onclick="changeScreen('screen-scan')">Return</button>
+    </div>
+
+    <div class="footer">
+        <div onclick="requestHelp()">❔ Assistance</div>
     </div>
 
     <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = {
-            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
-            authDomain: "checkout-c52ab.firebaseapp.com",
-            projectId: "checkout-c52ab",
-            storageBucket: "checkout-c52ab.firebasestorage.app",
-            messagingSenderId: "486554411560",
-            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d"
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = { 
+            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE", 
+            authDomain: "checkout-c52ab.firebaseapp.com", 
+            projectId: "checkout-c52ab", 
+            storageBucket: "checkout-c52ab.firebasestorage.app", 
+            messagingSenderId: "486554411560", 
+            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d" 
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         let basket = [];
+        let scanner = null;
         let lastCode = "";
         let lastTime = 0;
-        let isStaffMode = false;
-        const html5QrCode = new Html5Qrcode("reader");
+        let staffMode = false;
+        const beep = new Audio('BEEP.mp3');
 
-        function showScan() {
-            document.getElementById('welcome-screen').style.display = 'none';
-            document.getElementById('scan-screen').style.display = 'flex';
-            
-            // Start original-style scanning
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 300, height: 150 } },
-                onScanSuccess
-            );
+        function changeScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'screen-scan' && !scanner) {
+                scanner = new Html5Qrcode("reader");
+                scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: {width: 300, height: 150} }, onScan);
+            }
         }
 
-        async function onScanSuccess(decodedText) {
+        async function onScan(code) {
             const now = Date.now();
-            if (decodedText === lastCode && (now - lastTime) < 3000) return;
-            lastCode = decodedText;
-            lastTime = now;
+            if (code === lastCode && (now - lastTime) < 3000) return; // Multi-scan fix
+            lastCode = code; lastTime = now;
 
-            // STAFF VERIFICATION
-            if (isStaffMode) {
-                const staffDoc = await db.collection("staff").doc(decodedText).get();
-                if (staffDoc.exists) {
-                    isStaffMode = false;
+            if(staffMode) {
+                const staff = await db.collection("staff").doc(code).get();
+                if(staff.exists) {
+                    staffMode = false;
                     document.getElementById('assistance-bar').style.display = 'none';
-                    document.getElementById('status').innerText = "Cleared by " + staffDoc.data().name;
                 }
                 return;
             }
 
-            // PRODUCT SCAN
-            const doc = await db.collection("inventory").doc(decodedText).get();
+            const doc = await db.collection("inventory").doc(code).get();
             if (doc.exists) {
+                beep.play();
                 basket.push(doc.data());
-                renderBasket();
-                document.getElementById('status').innerText = "Added: " + doc.data().name;
-            } else {
-                document.getElementById('status').innerText = "Unknown Item: " + decodedText;
+                updateUI();
             }
         }
 
-        function renderBasket() {
-            const list = document.getElementById('basket-items');
+        function updateUI() {
             let total = 0;
-            list.innerHTML = basket.map(i => {
+            document.getElementById('basket').innerHTML = basket.map(i => {
                 total += i.price;
-                return `<div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #eee;">
-                    <span>${i.name}</span><strong>£${i.price.toFixed(2)}</strong>
-                </div>`;
+                return `<div class="item-row"><span>${i.name}</span><span>€${i.price.toFixed(2)}</span></div>`;
             }).join('');
-            document.getElementById('total-price').innerText = "£" + total.toFixed(2);
+            document.getElementById('total-val').innerText = `€${total.toFixed(2)}`;
+            document.getElementById('count').innerText = basket.length;
         }
 
-        function callHelp() {
-            document.getElementById('assistance-bar').style.display = 'block';
-        }
-
-        function startStaffVerify() {
-            isStaffMode = true;
-            alert("Please scan staff card now.");
-        }
+        function requestHelp() { document.getElementById('assistance-bar').style.display = 'block'; }
+        function startStaffUnlock() { staffMode = true; alert("Please scan Staff Card to continue."); }
+        function finish() { alert("Payment Successful!"); location.reload(); }
     </script>
 </body>
 </html>
