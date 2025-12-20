@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PC Scanner Bridge</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #111; color: #00ff00; font-family: monospace; text-align: center; padding-top: 100px; }
+        #terminal-box { border: 2px solid #00ff00; padding: 40px; display: inline-block; border-radius: 10px; }
+        input { position: absolute; opacity: 0; }
+        .log { margin-top: 20px; color: #888; text-align: left; max-width: 400px; margin: 20px auto; }
+    </style>
+</head>
+<body>
+    <div id="terminal-box">
+        <h1>PC BRIDGE ACTIVE</h1>
+        <p>TERMINAL: 111</p>
+        <p id="msg">WAITING FOR PHYSICAL SCAN...</p>
+        <input type="text" id="bcIn" autofocus>
+    </div>
+    <div id="log" class="log"></div>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE", 
+            authDomain: "checkout-c52ab.firebaseapp.com", 
+            projectId: "checkout-c52ab", 
+            storageBucket: "checkout-c52ab.firebasestorage.app", 
+            messagingSenderId: "486554411560", 
+            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d" 
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const input = document.getElementById('bcIn');
+        const log = document.getElementById('log');
+
+        // Keep input focused so the barcode scanner can "type" into it
+        document.addEventListener('click', () => input.focus());
+        setInterval(() => input.focus(), 1000);
+
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const code = input.value.trim();
+                input.value = '';
+                if(!code) return;
+
+                document.getElementById('msg').innerText = "Looking up: " + code;
+
+                try {
+                    // 1. Find product in your Restocker's 'inventory' collection
+                    const doc = await db.collection("inventory").doc(code).get();
+                    
+                    if (doc.exists) {
+                        const productData = doc.data();
+                        
+                        // 2. Add it to the iPad's terminal collection
+                        await db.collection("terminal_111").add({
+                            name: productData.name,
+                            price: parseFloat(productData.price),
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        log.innerHTML = `<div>[${new Date().toLocaleTimeString()}] SENT: ${productData.name} (€${productData.price})</div>` + log.innerHTML;
+                        document.getElementById('msg').innerText = "SUCCESS: Sent to iPad!";
+                    } else {
+                        document.getElementById('msg').innerText = "ERROR: Barcode not found in inventory.";
+                        log.innerHTML = `<div style="color:red">Unknown Barcode: ${code}</div>` + log.innerHTML;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('msg').innerText = "Firestore Error: " + err.message;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
