@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesco Shop and Scan</title>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        .camera-view { flex: 1; border-bottom: 2px solid white; position: relative; }
+        .red-line { position: absolute; top: 50%; width: 100%; height: 2px; background: red; box-shadow: 0 0 10px red; }
+        .item-card { background: white; color: black; margin: 20px; padding: 15px; border-radius: 10px; display: flex; align-items: center; }
+        .footer { height: 100px; display: flex; }
+        .savings { flex: 1; background: #ffdd00; color: black; padding: 15px; }
+        .total { flex: 1; background: #00539f; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="camera-view">
+        <div class="red-line"></div>
+    </div>
+
+    <div class="item-card" id="lastScanned">
+        <div style="flex:1"><b>Ready to Scan</b></div>
+    </div>
+
+    <div style="text-align:center; padding: 10px;">When Done Scan Barcode at Checkout</div>
+
+    <div class="footer">
+        <div class="savings">Savings<br><b>€0.00</b></div>
+        <div class="total">Total<br><b id="mobTotal">€0.00</b></div>
+    </div>
+
+    <input type="text" id="mobIn" autofocus style="opacity:0">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { /* USE YOUR CONFIG FROM ABOVE */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let basket = [];
+
+        document.getElementById('mobIn').addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                const code = e.target.value;
+                get(child(ref(db), `products/${code}`)).then(snap => {
+                    if(snap.exists()) {
+                        const item = snap.val();
+                        basket.push(item);
+                        document.getElementById('lastScanned').innerHTML = `<b>${item.name}</b> <span style="margin-left:auto">€${item.price.toFixed(2)}</span>`;
+                        let total = basket.reduce((a, b) => a + b.price, 0);
+                        document.getElementById('mobTotal').innerText = '€' + total.toFixed(2);
+                    }
+                });
+                e.target.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
