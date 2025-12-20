@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tesco Restocker - Manager</title>
+    <title>Tesco Manager - Product Database</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
-        .card { background: white; padding: 20px; border-radius: 8px; max-width: 400px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
-        button { background: #00539f; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%; }
+        body { font-family: 'Arial', sans-serif; background: #00539f; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; color: #333; padding: 30px; border-radius: 15px; width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h2 { color: #00539f; margin-top: 0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #ee1c2e; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        button:hover { background: #c71523; }
+        #status { font-size: 0.9rem; margin-top: 10px; text-align: center; color: #008137; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Stock New Item</h2>
-        <input type="text" id="barcode" placeholder="Barcode ID (e.g. 7622201754259)">
-        <input type="text" id="name" placeholder="Product Name (e.g. Jelly Babies)">
+        <h2>Stock Manager</h2>
+        <input type="text" id="barcode" placeholder="Scan Barcode Here">
+        <input type="text" id="name" placeholder="Item Name (e.g. Jelly Babies)">
         <input type="number" id="price" step="0.01" placeholder="Price (e.g. 1.50)">
-        <button onclick="saveProduct()">Save to Cloud</button>
-        <p id="status"></p>
+        <button id="saveBtn">Save to Cloud</button>
+        <div id="status"></div>
     </div>
 
     <script type="module">
@@ -27,7 +30,7 @@
             apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
             authDomain: "checkout-c52ab.firebaseapp.com",
             projectId: "checkout-c52ab",
-            databaseURL: "https://checkout-c52ab-default-rtdb.firebaseio.com", // Verify this in Firebase Console
+            databaseURL: "https://checkout-c52ab-default-rtdb.europe-west1.firebasedatabase.app",
             storageBucket: "checkout-c52ab.firebasestorage.app",
             messagingSenderId: "486554411560",
             appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d"
@@ -36,17 +39,22 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        window.saveProduct = function() {
+        document.getElementById('saveBtn').addEventListener('click', () => {
             const b = document.getElementById('barcode').value;
             const n = document.getElementById('name').value;
             const p = document.getElementById('price').value;
-            
-            set(ref(db, 'products/' + b), { name: n, price: parseFloat(p) })
-            .then(() => { 
-                document.getElementById('status').innerText = "Saved: " + n;
+
+            if(!b || !n || !p) return alert("Fill all fields");
+
+            set(ref(db, 'products/' + b), {
+                name: n,
+                price: parseFloat(p)
+            }).then(() => {
+                document.getElementById('status').innerText = "Successfully added " + n;
                 document.querySelectorAll('input').forEach(i => i.value = '');
+                document.getElementById('barcode').focus();
             });
-        }
+        });
     </script>
 </body>
 </html>
