@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tesco Kiosk iPad</title>
+    <style>
+        :root { --blue: #00539f; --grey: #f3f3f3; }
+        body { margin: 0; font-family: Arial, sans-serif; background: white; overflow: hidden; }
+        .screen { display: none; width: 100vw; height: 100vh; }
+        .active { display: block; }
+        
+        /* Start Screen */
+        #start { background: url('https://i.imgur.com/peas-bg.jpg'); background-size: cover; text-align: center; }
+        .overlay { background: white; width: 85%; margin: 5% auto; padding: 40px; border-radius: 10px; }
+        
+        /* Basket View */
+        .header { background: var(--blue); color: white; padding: 15px; display: flex; justify-content: space-between; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .items { flex: 2; padding: 20px; overflow-y: auto; }
+        .sidebar { flex: 1; background: var(--grey); padding: 20px; display: flex; flex-direction: column; }
+        .item-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #ddd; font-size: 1.3rem; }
+        .pay-btn { background: #008137; color: white; font-size: 2rem; padding: 25px; border: none; border-radius: 50px; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <div id="start" class="screen active">
+        <div class="overlay">
+            <h1>Card Only</h1>
+            <div style="display:flex; justify-content: space-around; align-items: center;">
+                <div><img src="https://img.icons8.com/ios-filled/100/00539f/shopping-basket-2.png"><br><h3>Self service</h3></div>
+                <div style="border-left: 1px dashed #ccc; height: 150px;"></div>
+                <div><img src="https://img.icons8.com/ios/100/000000/barcode.png"><br><h3>Scan as you Shop</h3></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="basket" class="screen">
+        <div class="header"><b>TESCO</b> <button>Assistance</button></div>
+        <div class="container">
+            <div class="items" id="itemList"></div>
+            <div class="sidebar">
+                <button>Own Bag</button>
+                <div style="text-align:center; margin-top:20px;">
+                    <p>TOTAL</p>
+                    <h1 id="totalPrice">€0.00</h1>
+                    <button class="pay-btn" onclick="location.reload()">Pay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { /* USE YOUR CONFIG FROM ABOVE */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Listen for basket updates for Terminal 111
+        onValue(ref(db, 'terminals/111/basket'), (snap) => {
+            const data = snap.val();
+            if(!data) return;
+
+            document.getElementById('start').classList.remove('active');
+            document.getElementById('basket').classList.add('active');
+
+            let total = 0;
+            let html = '';
+            Object.values(data).forEach(item => {
+                html += `<div class="item-row"><span>${item.name}</span><span>€${item.price.toFixed(2)}</span></div>`;
+                total += item.price;
+            });
+            document.getElementById('itemList').innerHTML = html;
+            document.getElementById('totalPrice').innerText = '€' + total.toFixed(2);
+        });
+    </script>
+</body>
+</html>
