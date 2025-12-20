@@ -1,63 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Scanner Bridge - PC</title>
-    <style>
-        body { background: #111; color: #00ff00; font-family: 'Courier New', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        #terminal-box { border: 2px solid #00ff00; padding: 40px; border-radius: 10px; background: #000; text-align: center; width: 400px; }
-        .cursor { display: inline-block; width: 10px; height: 20px; background: #00ff00; animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        #log { margin-top: 20px; font-size: 0.8rem; color: #aaa; text-align: left; width: 100%; height: 100px; overflow-y: auto; }
-    </style>
+    <title>PC Scanner Bridge</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-    <div id="terminal-box">
-        <h1>HARDWARE BRIDGE</h1>
-        <p>TERMINAL ID: 111</p>
-        <div style="font-size: 1.5rem;">WAITING FOR SCAN<span class="cursor"></span></div>
-        <input type="text" id="scannerInput" autofocus style="position: absolute; opacity: 0;">
-        <div id="log"></div>
-    </div>
+<body style="background: #111; color: #00ff00; font-family: monospace; text-align: center; padding-top: 100px;">
+    <h1>HARDWARE BRIDGE ACTIVE</h1>
+    <p>Scanner waiting for input...</p>
+    <input type="text" id="bcIn" autofocus style="opacity: 0;">
+    <div id="status" style="margin-top:20px"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE", authDomain: "checkout-c52ab.firebaseapp.com", projectId: "checkout-c52ab" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const input = document.getElementById('bcIn');
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
-            authDomain: "checkout-c52ab.firebaseapp.com",
-            projectId: "checkout-c52ab",
-            databaseURL: "https://checkout-c52ab-default-rtdb.europe-west1.firebasedatabase.app",
-            storageBucket: "checkout-c52ab.firebasestorage.app",
-            messagingSenderId: "486554411560",
-            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const input = document.getElementById('scannerInput');
-        const log = document.getElementById('log');
-
-        // Always keep the input focused for the physical scanner
         document.addEventListener('click', () => input.focus());
-        setInterval(() => input.focus(), 1000);
 
-        input.addEventListener('keydown', (e) => {
+        input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
-                const bCode = input.value;
-                if(!bCode) return;
-
-                // Look up in cloud products
-                get(child(ref(db), `products/${bCode}`)).then((snap) => {
-                    if (snap.exists()) {
-                        // Push to iPad Terminal 111
-                        push(ref(db, 'terminals/111/basket'), snap.val());
-                        log.innerHTML = `<div>> SENT: ${snap.val().name} to Kiosk</div>` + log.innerHTML;
-                    } else {
-                        log.innerHTML = `<div style="color:red">> ERROR: Barcode ${bCode} not in database</div>` + log.innerHTML;
-                    }
-                });
+                const code = input.value;
                 input.value = '';
+                
+                // 1. Find product in your Restocker's 'inventory'
+                const doc = await db.collection("inventory").doc(code).get();
+                
+                if (doc.exists) {
+                    // 2. Add it to the iPad's terminal collection
+                    await db.collection("terminal_111").add(doc.data());
+                    document.getElementById('status').innerHTML += `<p>Sent: ${doc.data().name}</p>`;
+                } else {
+                    document.getElementById('status').innerHTML += `<p style="color:red">Unknown Barcode: ${code}</p>`;
+                }
             }
         });
     </script>
