@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PC Scanner Bridge</title>
+</head>
+<body style="background: #111; color: lime; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh;">
+    
+    <div style="text-align: center;">
+        <h1>SYSTEM ACTIVE</h1>
+        <p>Scanner connected. Waiting for scans...</p>
+        <input type="text" id="barcodeInput" autofocus style="position: absolute; opacity: 0;">
+        <div id="log" style="margin-top: 20px;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = { /* USE YOUR CONFIG FROM ABOVE */ };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const input = document.getElementById('barcodeInput');
+
+        document.addEventListener('click', () => input.focus());
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const bCode = input.value;
+                get(child(ref(db), `products/${bCode}`)).then((snap) => {
+                    if (snap.exists()) {
+                        push(ref(db, 'terminals/111/basket'), snap.val());
+                        document.getElementById('log').innerHTML += `<p>Scanned: ${snap.val().name}</p>`;
+                    } else {
+                        alert("Product not found: " + bCode);
+                    }
+                });
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
