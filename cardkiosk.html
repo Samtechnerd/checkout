@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesco Kiosk - Final Fix</title>
+    <title>Tesco Kiosk - Ultimate</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -19,12 +19,11 @@
         
         body { margin: 0; font-family: "Arial", sans-serif; overflow: hidden; -webkit-user-select: none; background: white; }
 
-        /* --- VITAL FIX: FORCE HIDING/SHOWING --- */
-        /* We use !important to ensure the logic always wins over the design styles */
+        /* FORCE DISPLAY LOGIC */
         .screen { display: none !important; width: 100vw; height: 100vh; }
         .active { display: flex !important; flex-direction: column; }
 
-        /* --- DEBUG LIGHT (Bottom Right) --- */
+        /* --- DEBUG LIGHT (Visual Connection Check) --- */
         #debug-light {
             position: fixed; bottom: 10px; right: 10px;
             width: 15px; height: 15px; border-radius: 50%;
@@ -32,87 +31,123 @@
             border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
 
+        /* --- ASSISTANCE OVERLAY (Hidden by default) --- */
+        #assistance-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(238, 28, 46, 0.9); z-index: 10000;
+            flex-direction: column; justify-content: center; align-items: center; color: white;
+            animation: pulse 2s infinite;
+        }
+        #assistance-overlay h1 { font-size: 5rem; text-align: center; }
+        #assistance-overlay button {
+            margin-top: 50px; font-size: 2rem; padding: 20px 60px;
+            border: 4px solid white; background: transparent; color: white; border-radius: 50px;
+        }
+        @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
+
+
         /* ==============================
            SCREEN 1: START SCREEN
            ============================== */
         #start-screen {
             background: url('https://media.istockphoto.com/id/478157668/photo/apple-background.jpg?s=612x612&w=0&k=20&c=_tkw1vIA9YzzpOFaUE7Al_gxAOj3AkhXsZ5VnGTY94U=') no-repeat center center;
             background-size: cover;
-            justify-content: flex-end;
-            align-items: center;
+            justify-content: flex-end; align-items: center;
         }
 
         .top-bar-overlay {
-            position: absolute; top: 0; width: 100%; padding-top: 30px;
+            position: absolute; top: 0; width: 100%; padding-top: 40px;
             display: flex; justify-content: center; z-index: 2;
         }
-        .tesco-main-logo { height: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        /* BIGGER LOGO */
+        .tesco-main-logo { height: 90px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+
         .assist-btn-float {
-            position: absolute; top: 30px; right: 40px;
+            position: absolute; top: 40px; right: 40px;
             background: white; color: var(--tesco-blue);
-            font-size: 1.3rem; font-weight: bold;
-            padding: 10px 25px; border-radius: 40px; border: none; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
-            display: flex; align-items: center; gap: 8px;
+            font-size: 1.6rem; font-weight: bold;
+            padding: 15px 35px; border-radius: 50px; border: none; 
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3); cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
         }
+        .assist-btn-float:active { transform: scale(0.95); }
 
         .bottom-sheet {
-            background: white; width: 94%; max-width: 1200px; height: 75vh;
-            border-radius: 20px 20px 0 0; padding-top: 60px;
-            text-align: center; box-shadow: 0 -10px 50px rgba(0,0,0,0.5);
+            background: white; 
+            width: 98%;          /* CLOSER TO WALLS */
+            max-width: 1400px; 
+            height: 80vh; 
+            border-radius: 25px 25px 0 0; 
+            padding-top: 50px;
+            text-align: center; 
+            box-shadow: 0 -10px 60px rgba(0,0,0,0.6);
             display: flex; flex-direction: column; align-items: center; position: relative;
         }
-        .card-only-title { font-size: 5rem; font-weight: normal; margin: 0 0 50px 0; color: black; }
-        .start-options { display: flex; justify-content: center; align-items: flex-start; gap: 80px; width: 100%; flex: 1; }
-        .option-col { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 320px; padding: 20px; }
-        .option-col h2 { font-size: 2.2rem; margin: 20px 0 10px 0; color: black; font-weight: bold; }
-        .option-col p { color: #999; font-size: 1.2rem; line-height: 1.4; margin: 0; }
+
+        /* BIGGER TEXT */
+        .card-only-title { font-size: 6rem; font-weight: normal; margin: 0 0 40px 0; color: black; }
+        
+        .start-options { display: flex; justify-content: center; align-items: flex-start; gap: 60px; width: 100%; flex: 1; }
+        .option-col { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 350px; padding: 20px; }
+        
+        .option-col h2 { font-size: 2.8rem; margin: 25px 0 15px 0; color: black; font-weight: bold; }
+        .option-col p { color: #888; font-size: 1.5rem; line-height: 1.5; margin: 0; }
+        
         .icon-circle {
-            background: var(--tesco-blue); width: 140px; height: 140px; border-radius: 50%;
+            background: var(--tesco-blue); width: 160px; height: 160px; border-radius: 50%;
             display: flex; justify-content: center; align-items: center; margin-bottom: 10px;
         }
-        .icon-circle img { width: 70px; height: 70px; }
-        .divider-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 250px; color: #666; font-size: 1.2rem; }
-        .divider-line { width: 0; height: 100px; border-left: 2px dashed #ccc; }
-        .divider-text { margin: 15px 0; font-weight: bold; color: #555; }
-        .sheet-footer { background: var(--tesco-blue); width: 100%; padding: 25px 40px; margin-top: auto; display: flex; justify-content: flex-end; box-sizing: border-box; }
-        .large-text-btn { background: var(--tesco-blue); border: 2px solid white; color: white; font-size: 1.4rem; font-weight: bold; padding: 12px 35px; border-radius: 40px; }
+        .icon-circle img { width: 80px; height: 80px; }
+
+        .divider-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #666; font-size: 1.5rem; }
+        .divider-line { width: 0; height: 120px; border-left: 3px dashed #ccc; }
+        .divider-text { margin: 20px 0; font-weight: bold; color: #555; }
+
+        .sheet-footer { background: var(--tesco-blue); width: 100%; padding: 30px 50px; margin-top: auto; display: flex; justify-content: flex-end; box-sizing: border-box; }
+        .large-text-btn { background: var(--tesco-blue); border: 3px solid white; color: white; font-size: 1.6rem; font-weight: bold; padding: 15px 40px; border-radius: 50px; cursor: pointer; }
+
 
         /* ==============================
            SCREEN 2: BASKET VIEW
            ============================== */
-        .header { background: var(--tesco-blue); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-        .logo-text { font-size: 1.8rem; font-weight: bold; cursor: pointer; }
-        .header-btn { background: white; color: var(--tesco-blue); border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; font-size: 1.2rem; }
-        .main-layout { display: flex; flex: 1; height: calc(100vh - 80px); }
+        .header { background: var(--tesco-blue); color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logo-text { font-size: 2.2rem; font-weight: bold; cursor: pointer; }
+        .header-btn { background: white; color: var(--tesco-blue); border: none; padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 1.4rem; cursor: pointer; }
+        .main-layout { display: flex; flex: 1; height: calc(100vh - 90px); }
         .basket-list { flex: 2; padding: 0; overflow-y: auto; background: white; }
-        .item-row { display: flex; justify-content: space-between; padding: 25px; border-bottom: 1px solid #ddd; font-size: 1.6rem; align-items: center; }
+        .item-row { display: flex; justify-content: space-between; padding: 30px; border-bottom: 1px solid #ddd; font-size: 2rem; align-items: center; }
         .sidebar { flex: 1; background: var(--bg-grey); padding: 30px; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
-        .side-btn { padding: 20px; margin-bottom: 15px; background: white; border: 1px solid #ccc; font-weight: bold; font-size: 1.5rem; border-radius: 8px; text-align: left; }
+        .side-btn { padding: 25px; margin-bottom: 20px; background: white; border: 1px solid #ccc; font-weight: bold; font-size: 1.8rem; border-radius: 10px; text-align: left; }
         .total-area { background: white; padding: 30px; border-radius: 15px; text-align: center; margin-top: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .pay-btn { background: var(--green-pay); color: white; border: none; width: 100%; padding: 25px; border-radius: 50px; font-size: 3rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .pay-btn { background: var(--green-pay); color: white; border: none; width: 100%; padding: 30px; border-radius: 60px; font-size: 3.5rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
 
         /* ==============================
            SCREEN 3: PAYMENT SCREEN
            ============================== */
         #payment-screen { text-align: center; background: white; }
-        .clubcard-msg { font-size: 3rem; margin-top: 60px; margin-bottom: 60px; font-weight: bold; }
-        .payment-grid { display: flex; justify-content: center; gap: 80px; margin-bottom: 50px; }
-        .pay-option { display: flex; flex-direction: column; align-items: center; }
-        .pay-icon { width: 140px; height: 140px; background: var(--tesco-blue); border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
-        .pay-option h3 { font-size: 1.8rem; margin: 0; }
-        .final-total { font-size: 2.5rem; margin-top: 80px; color: #333; font-weight: bold; }
+        .clubcard-msg { font-size: 3.5rem; margin-top: 80px; margin-bottom: 80px; font-weight: bold; }
+        .payment-grid { display: flex; justify-content: center; gap: 100px; margin-bottom: 60px; }
+        .pay-option { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .pay-icon { width: 160px; height: 160px; background: var(--tesco-blue); border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 25px; }
+        .pay-option h3 { font-size: 2rem; margin: 0; }
+        .final-total { font-size: 3rem; margin-top: 100px; color: #333; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="debug-light" title="Red=Waiting, Green=Data Received"></div>
 
+    <div id="assistance-overlay">
+        <h1>Help is on the way</h1>
+        <p style="font-size: 2rem;">Please wait for a colleague.</p>
+        <button onclick="hideAssistance()">Cancel Assistance</button>
+    </div>
+
     <div id="start-screen" class="screen active">
         <div class="top-bar-overlay">
             <img src="https://companieslogo.com/img/orig/TSCO.L_BIG.D-c5e423bd.png?t=1720244494" class="tesco-main-logo">
-            <button class="assist-btn-float">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <button class="assist-btn-float" onclick="callAssistance()">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 15C4 15 5 16 8 16C11 16 13 14 16 14C19 14 20 15 20 15V4C20 4 19 3 16 3C13 3 11 5 8 5C5 5 4 4 4 4V15Z" stroke="#00539f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M4 22V4" stroke="#00539f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -124,7 +159,7 @@
             <div class="start-options">
                 <div class="option-col" onclick="startSelfService()">
                     <div class="icon-circle">
-                        <img src="https://img.icons8.com/ios-filled/80/ffffff/shopping-basket-2.png">
+                        <img src="https://img.icons8.com/ios-filled/90/ffffff/shopping-basket-2.png">
                     </div>
                     <h2>Self service</h2>
                     <p>Please Scan Your first item<br>or tap Here to Start</p>
@@ -136,13 +171,13 @@
                 </div>
                 <div class="option-col">
                     <img src="data:image/png;base64,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" 
-                         alt="Scan Barcode" style="width: 150px; height: auto; margin-bottom: 10px;">
+                         alt="Scan Barcode" style="width: 180px; height: auto; margin-bottom: 10px;">
                     <h2>Scan as you Shop</h2>
                     <p>Please Scan this Barcode<br>to start</p>
                 </div>
             </div>
             <div class="sheet-footer">
-                <button class="large-text-btn">AA Large Text</button>
+                <button class="large-text-btn" onclick="toggleLargeText()">AA Large Text</button>
             </div>
         </div>
     </div>
@@ -150,7 +185,7 @@
     <div id="basket-screen" class="screen">
         <div class="header">
             <div class="logo-text" onclick="resetTerminal()">TESCO</div>
-            <button class="header-btn">Assistance</button>
+            <button class="header-btn" onclick="callAssistance()">Assistance</button>
         </div>
         <div class="main-layout">
             <div class="basket-list" id="itemList"></div>
@@ -158,8 +193,8 @@
                 <button class="side-btn">Find item</button>
                 <button class="side-btn">Own Bag</button>
                 <div class="total-area">
-                    <p style="margin:0; font-weight:bold; color:#666; font-size: 1.2rem;">TOTAL</p>
-                    <h1 id="grandTotal" style="font-size: 4.5rem; margin: 10px 0;">€0.00</h1>
+                    <p style="margin:0; font-weight:bold; color:#666; font-size: 1.5rem;">TOTAL</p>
+                    <h1 id="grandTotal" style="font-size: 5.5rem; margin: 10px 0;">€0.00</h1>
                     <button class="pay-btn" onclick="goToPayment()">Pay</button>
                 </div>
             </div>
@@ -169,19 +204,19 @@
     <div id="payment-screen" class="screen">
         <div class="header">
             <div class="logo-text" onclick="resetTerminal()">TESCO</div>
-            <button class="header-btn">Assistance</button>
+            <button class="header-btn" onclick="callAssistance()">Assistance</button>
         </div>
         <div class="clubcard-msg">Don't Forget to scan your Clubcard</div>
         <div class="payment-grid">
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Card Payment Selected')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/bank-card-backside.png"></div>
                 <h3>Card</h3>
             </div>
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Scan Coupons now')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/ticket.png"></div>
                 <h3>Coupons</h3>
             </div>
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Scan Gift Card now')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/gift-card.png"></div>
                 <h3>Gift Card</h3>
             </div>
@@ -208,11 +243,10 @@
             const basket = document.getElementById('basket-screen');
             const payment = document.getElementById('payment-screen');
 
-            // --- DEBUG LIGHT LOGIC ---
             if (snap.size > 0) {
-                debugLight.style.background = "#00ff00"; // Green = Items
+                debugLight.style.background = "#00ff00"; 
             } else {
-                debugLight.style.background = "red"; // Red = Empty
+                debugLight.style.background = "red"; 
             }
 
             if (snap.empty) {
@@ -245,6 +279,14 @@
             document.getElementById('payFinalTotal').innerText = 'TOTAL TO PAY: €' + total.toFixed(2);
         });
 
+        // --- NEW FUNCTIONS ---
+        function callAssistance() {
+            document.getElementById('assistance-overlay').style.display = 'flex';
+        }
+        function hideAssistance() {
+            document.getElementById('assistance-overlay').style.display = 'none';
+        }
+
         function startSelfService() {
             document.getElementById('start-screen').classList.remove('active');
             document.getElementById('basket-screen').classList.add('active');
@@ -256,11 +298,20 @@
         }
 
         async function resetTerminal() {
-            if(confirm("Clear this session and return to Start?")) {
+            if(confirm("Clear this session?")) {
                 const snap = await db.collection("terminal_111").get();
                 const batch = db.batch();
                 snap.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
+            }
+        }
+
+        function toggleLargeText() {
+            document.body.classList.toggle('large-mode');
+            if(document.body.classList.contains('large-mode')) {
+                document.documentElement.style.fontSize = "22px";
+            } else {
+                document.documentElement.style.fontSize = "16px";
             }
         }
     </script>
