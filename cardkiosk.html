@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesco Kiosk - Full Simulator</title>
+    <title>Tesco Kiosk Simulator</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -19,7 +19,7 @@
         
         body { margin: 0; font-family: "Arial", sans-serif; overflow: hidden; -webkit-user-select: none; background: white; }
 
-        /* --- SCREEN VISIBILITY --- */
+        /* --- SCREEN UTILS --- */
         .screen { display: none; width: 100vw; height: 100vh; }
         .active { display: flex; flex-direction: column; }
 
@@ -31,21 +31,23 @@
             background-size: cover;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Space between top elements and bottom card */
+            justify-content: flex-end; /* Align card to bottom */
             align-items: center;
         }
 
         /* Top Overlay Items */
         .top-bar-overlay {
+            position: absolute;
+            top: 0;
             width: 100%;
             padding-top: 30px;
             display: flex;
             justify-content: center;
-            position: relative;
+            z-index: 2; /* Ensure it stays above background */
         }
 
         .tesco-main-logo {
-            height: 60px; /* Adjust size based on preference */
+            height: 50px; 
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
@@ -55,34 +57,38 @@
             right: 40px;
             background: white; 
             color: var(--tesco-blue);
-            font-size: 1.4rem; 
+            font-size: 1.3rem; 
             font-weight: bold;
-            padding: 12px 30px; 
+            padding: 10px 25px; 
             border-radius: 40px;
             border: none; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             cursor: pointer;
             display: flex; align-items: center; gap: 8px;
+            transition: transform 0.1s;
         }
+        .assist-btn-float:active { transform: scale(0.95); }
 
         /* The White Card Container */
         .bottom-sheet {
             background: white;
-            width: 100%;
-            border-radius: 30px 30px 0 0;
-            padding-top: 50px;
+            width: 94%;           /* Doesn't touch sides */
+            max-width: 1200px;    /* Limit width on big screens */
+            height: 75vh;         /* Taller container */
+            border-radius: 20px 20px 0 0; /* Rounded top corners */
+            padding-top: 60px;
             text-align: center;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 -10px 50px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: slideUp 0.6s ease-out;
+            position: relative;
         }
 
         .card-only-title { 
             font-size: 5rem; 
-            font-weight: bold; 
-            margin: 0 0 40px 0; 
+            font-weight: normal; /* Tesco font is usually cleaner/lighter */
+            margin: 0 0 50px 0; 
             color: black; 
         }
 
@@ -90,10 +96,10 @@
         .start-options { 
             display: flex; 
             justify-content: center; 
-            align-items: center; 
-            gap: 60px; 
+            align-items: flex-start; /* Align to top */
+            gap: 80px; 
             width: 100%;
-            margin-bottom: 50px;
+            flex: 1; /* Takes up remaining space */
         }
 
         .option-col { 
@@ -101,19 +107,24 @@
             flex-direction: column; 
             align-items: center; 
             cursor: pointer; 
-            width: 300px;
+            width: 320px;
+            padding: 20px;
+            border-radius: 15px;
+            transition: background 0.2s;
         }
-        
-        .option-col h2 { font-size: 2rem; margin: 15px 0 10px 0; color: black; }
-        .option-col p { color: #888; font-size: 1.3rem; line-height: 1.4; margin: 0; }
+        .option-col:active { background: #f0f0f0; }
+
+        .option-col h2 { font-size: 2.2rem; margin: 20px 0 10px 0; color: black; font-weight: bold; }
+        .option-col p { color: #999; font-size: 1.2rem; line-height: 1.4; margin: 0; }
 
         .icon-circle {
             background: var(--tesco-blue);
-            width: 130px; height: 130px;
+            width: 140px; height: 140px;
             border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             margin-bottom: 10px;
         }
+        .icon-circle img { width: 70px; height: 70px; }
 
         /* The "OR" Divider */
         .divider-container {
@@ -121,22 +132,22 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 200px;
+            height: 250px;
             color: #666;
             font-size: 1.2rem;
         }
-        .divider-line { width: 2px; height: 80px; border-left: 2px dashed #ccc; }
-        .divider-text { margin: 10px 0; font-weight: bold; color: #555; }
+        .divider-line { width: 0; height: 100px; border-left: 2px dashed #ccc; }
+        .divider-text { margin: 15px 0; font-weight: bold; color: #555; }
 
-        /* Blue Footer Bar at Bottom of Card */
+        /* Blue Footer Bar */
         .sheet-footer {
             background: var(--tesco-blue);
             width: 100%;
-            padding: 20px 0;
-            margin-top: auto; /* Pushes to bottom of flex container */
+            padding: 25px 40px;
+            margin-top: auto; 
+            border-radius: 0 0 0 0; /* Flat bottom */
             display: flex;
             justify-content: flex-end;
-            padding-right: 40px;
             box-sizing: border-box;
         }
 
@@ -146,12 +157,12 @@
             color: white;
             font-size: 1.4rem;
             font-weight: bold;
-            padding: 10px 30px;
-            border-radius: 30px;
+            padding: 12px 35px;
+            border-radius: 40px;
             cursor: pointer;
+            transition: background 0.2s;
         }
-
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .large-text-btn:active { background: var(--tesco-dark-blue); }
 
 
         /* ==============================
@@ -159,7 +170,7 @@
            ============================== */
         .header { background: var(--tesco-blue); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
         .logo-text { font-size: 1.8rem; font-weight: bold; cursor: pointer; }
-        .header-btn { background: white; color: var(--tesco-blue); border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; font-size: 1.2rem; }
+        .header-btn { background: white; color: var(--tesco-blue); border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
 
         .main-layout { display: flex; flex: 1; height: calc(100vh - 80px); }
         .basket-list { flex: 2; padding: 0; overflow-y: auto; background: white; }
@@ -171,6 +182,7 @@
 
         .total-area { background: white; padding: 30px; border-radius: 15px; text-align: center; margin-top: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .pay-btn { background: var(--green-pay); color: white; border: none; width: 100%; padding: 25px; border-radius: 50px; font-size: 3rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .pay-btn:active { opacity: 0.9; }
 
 
         /* ==============================
@@ -180,9 +192,10 @@
         .clubcard-msg { font-size: 3rem; margin-top: 60px; margin-bottom: 60px; font-weight: bold; }
         
         .payment-grid { display: flex; justify-content: center; gap: 80px; margin-bottom: 50px; }
-        .pay-option { display: flex; flex-direction: column; align-items: center; }
+        .pay-option { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .pay-icon { width: 140px; height: 140px; background: var(--tesco-blue); border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; }
         .pay-option h3 { font-size: 1.8rem; margin: 0; }
+        .pay-option:active .pay-icon { transform: scale(0.95); }
 
         .final-total { font-size: 2.5rem; margin-top: 80px; color: #333; font-weight: bold; }
     </style>
@@ -193,7 +206,7 @@
         
         <div class="top-bar-overlay">
             <img src="https://companieslogo.com/img/orig/TSCO.L_BIG.D-c5e423bd.png?t=1720244494" class="tesco-main-logo" alt="Tesco Logo">
-            <button class="assist-btn-float">
+            <button class="assist-btn-float" onclick="alert('Assistance coming!')">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 15C4 15 5 16 8 16C11 16 13 14 16 14C19 14 20 15 20 15V4C20 4 19 3 16 3C13 3 11 5 8 5C5 5 4 4 4 4V15Z" stroke="#00539f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M4 22V4" stroke="#00539f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -206,7 +219,7 @@
             <h1 class="card-only-title">Card Only</h1>
             
             <div class="start-options">
-                <div class="option-col">
+                <div class="option-col" onclick="startSelfService()">
                     <div class="icon-circle">
                         <img src="https://img.icons8.com/ios-filled/80/ffffff/shopping-basket-2.png" alt="Basket">
                     </div>
@@ -229,7 +242,7 @@
             </div>
 
             <div class="sheet-footer">
-                <button class="large-text-btn">AA Large Text</button>
+                <button class="large-text-btn" onclick="toggleLargeText()">AA Large Text</button>
             </div>
         </div>
     </div>
@@ -237,7 +250,7 @@
     <div id="basket-screen" class="screen">
         <div class="header">
             <div class="logo-text" onclick="resetTerminal()">TESCO</div>
-            <button class="header-btn">Assistance</button>
+            <button class="header-btn" onclick="alert('Assistance coming!')">Assistance</button>
         </div>
         <div class="main-layout">
             <div class="basket-list" id="itemList"></div>
@@ -258,20 +271,20 @@
     <div id="payment-screen" class="screen">
         <div class="header">
             <div class="logo-text" onclick="resetTerminal()">TESCO</div>
-            <button class="header-btn">Assistance</button>
+            <button class="header-btn" onclick="alert('Assistance coming!')">Assistance</button>
         </div>
         <div class="clubcard-msg">Don't Forget to scan your Clubcard</div>
 
         <div class="payment-grid">
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Card Payment Selected')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/bank-card-backside.png"></div>
                 <h3>Card</h3>
             </div>
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Scan Coupons now')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/ticket.png"></div>
                 <h3>Coupons</h3>
             </div>
-            <div class="pay-option">
+            <div class="pay-option" onclick="alert('Scan Gift Card now')">
                 <div class="pay-icon"><img src="https://img.icons8.com/ios-filled/80/ffffff/gift-card.png"></div>
                 <h3>Gift Card</h3>
             </div>
@@ -280,7 +293,7 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- 1. CONFIGURATION ---
         const firebaseConfig = { 
             apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE", 
             authDomain: "checkout-c52ab.firebaseapp.com", 
@@ -290,23 +303,25 @@
             appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d" 
         };
 
-        // --- INIT FIREBASE ---
+        // --- 2. INIT FIREBASE ---
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- LISTENER ---
+        // --- 3. LISTENER ---
         db.collection("terminal_111").onSnapshot((snap) => {
             const start = document.getElementById('start-screen');
             const basket = document.getElementById('basket-screen');
             const payment = document.getElementById('payment-screen');
 
             if (snap.empty) {
+                // If basket empty, show Start
                 start.classList.add('active');
                 basket.classList.remove('active');
                 payment.classList.remove('active');
                 return;
             }
 
+            // If items exist, force switch to Basket (unless paying)
             if (!payment.classList.contains('active')) {
                 start.classList.remove('active');
                 basket.classList.add('active');
@@ -330,6 +345,14 @@
             document.getElementById('payFinalTotal').innerText = 'TOTAL TO PAY: €' + total.toFixed(2);
         });
 
+        // --- 4. BUTTON FUNCTIONS ---
+
+        function startSelfService() {
+            // Manually switch to Basket view to start shopping "manually"
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('basket-screen').classList.add('active');
+        }
+
         function goToPayment() {
             document.getElementById('basket-screen').classList.remove('active');
             document.getElementById('payment-screen').classList.add('active');
@@ -341,6 +364,15 @@
                 const batch = db.batch();
                 snap.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
+            }
+        }
+
+        function toggleLargeText() {
+            document.body.classList.toggle('large-text-mode');
+            if(document.body.classList.contains('large-text-mode')) {
+                document.documentElement.style.fontSize = "20px";
+            } else {
+                document.documentElement.style.fontSize = "16px";
             }
         }
     </script>
