@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scanner Input</title>
+    <style>
+        body { font-family: monospace; background: #222; color: #0f0; padding: 20px; text-align: center; }
+        input { width: 80%; padding: 20px; font-size: 24px; text-align: center; border: 2px solid #0f0; background: black; color: white; outline: none; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; background: #333; color: white; border: 1px solid #555; }
+        .status { margin-top: 20px; font-size: 20px; }
+        hr { border-color: #444; margin: 30px 0; }
+    </style>
+</head>
+<body>
+
+    <h2>🔫 BARCODE SCANNER INPUT</h2>
+    
+    <input type="text" id="barcode-input" placeholder="SCAN BARCODE HERE..." autofocus>
+    <div class="status" id="status-msg">System Ready.</div>
+
+    <hr>
+    <h3>CONTROLS</h3>
+    <button onclick="startNewCustomer()" style="background: #007bff;">New Customer (Reset)</button>
+    <button onclick="triggerPayment()" style="background: #28a745;">Start Payment Mode</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAXtjM56OQso8g3RauOkT3h1ommplCelyE",
+            authDomain: "checkout-c52ab.firebaseapp.com",
+            projectId: "checkout-c52ab",
+            databaseURL: "https://checkout-c52ab-default-rtdb.europe-west1.firebasedatabase.app",
+            storageBucket: "checkout-c52ab.firebasestorage.app",
+            messagingSenderId: "486554411560",
+            appId: "1:486554411560:web:9d24b172a86cfe1b2c0b1d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- CONTROL FUNCTIONS ---
+        
+        window.startNewCustomer = function() {
+            set(ref(db, 'session'), { status: 'welcome', cart: {} });
+            document.getElementById('status-msg').innerText = "Session Reset.";
+            document.getElementById('barcode-input').focus();
+        };
+
+        window.triggerPayment = function() {
+            // Update status to 'paying' so Terminal knows to wake up
+            set(ref(db, 'session/status'), 'paying'); 
+            document.getElementById('status-msg').innerText = "Waiting for payment...";
+        };
+
+        // --- SCAN LOGIC ---
+        
+        const input = document.getElementById('barcode-input');
+        
+        // Keep focus so you can just keep scanning
+        document.body.addEventListener('click', () => input.focus());
+
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const barcode = input.value.trim();
+                input.value = ''; // Clear box
+
+                if (!barcode) return;
+
+                // 1. Set status to scanning (in case it was welcome)
+                // We use update to avoid overwriting the cart if it exists
+                // But for simplicity, we just assume if we scan, we are scanning.
+                
+                const inventorySnapshot = await get(child(ref(db), `inventory/${barcode}`));
+
+                if (inventorySnapshot.exists()) {
+                    const item = inventorySnapshot.val();
+                    
+                    // Calculate Price (Base + Deposit)
+                    let finalPrice = item.item_price;
+                    if (item.is_deposit) finalPrice += 0.15;
+
+                    // Push to Session Cart
+                    push(ref(db, 'session/cart'), {
+                        name: item.item_name,
+                        price: finalPrice,
+                        is_deposit: item.is_deposit
+                    });
+                    
+                    // Update Status to Scanning
+                    set(ref(db, 'session/status'), 'scanning');
+
+                    document.getElementById('status-msg').innerText = `Scanned: ${item.item_name}`;
+                } else {
+                    document.getElementById('status-msg').innerText = "❌ Item Not Found";
+                    // Play error beep sound here if you want
+                }
+            }
+        });
+    </script>
+</body>
+</html>
